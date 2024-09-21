@@ -4,6 +4,7 @@ import java.awt.*;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 import java.awt.event.*;
+import java.util.ArrayList;
 import javax.swing.JLabel;
 
 public class Board extends JPanel implements ActionListener {
@@ -22,6 +23,8 @@ public class Board extends JPanel implements ActionListener {
     Shape curPiece;
     Tetrominoes[] board;
 
+    private int totalAnimationSteps = 6; // 3 миготіння * 2 стани (видимий/невидимий)
+
     public Board(Game parent) {
         setFocusable(true);
         curPiece = new Shape();
@@ -35,9 +38,27 @@ public class Board extends JPanel implements ActionListener {
 
         // Встановлюємо темний фон
         setBackground(new Color(30, 30, 30));
+
+        animationTimer = new Timer(100, new AnimationListener());
+    }
+
+    class AnimationListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            animationStep++;
+            if (animationStep >= totalAnimationSteps) { // Кількість кроків анімації
+                animationTimer.stop();
+                deleteFullLines();
+                isAnimating = false;
+                timer.start();
+            }
+            repaint();
+        }
     }
 
     public void actionPerformed(ActionEvent e) {
+        if (isAnimating) {
+            return;
+        }
         if (isFallingFinished) {
             isFallingFinished = false;
             newPiece();
@@ -102,16 +123,22 @@ public class Board extends JPanel implements ActionListener {
         Dimension size = getSize();
         int boardTop = (int) size.getHeight() - BoardHeight * squareHeight();
 
-        // Малюємо фіксовані фігури
+        // Малюємо фіксовані фігури та анімацію
         for (int i = 0; i < BoardHeight; ++i) {
             for (int j = 0; j < BoardWidth; ++j) {
                 Tetrominoes shape = shapeAt(j, BoardHeight - i - 1);
-                if (shape != Tetrominoes.NoShape)
-                    drawSquare(g, j * squareWidth(), boardTop + i * squareHeight(), shape);
+                if (shape != Tetrominoes.NoShape) {
+                    if (isAnimating && fullLines.contains(BoardHeight - i - 1)) {
+                        drawAnimatedSquare(g, j * squareWidth(), boardTop + i * squareHeight(), shape);
+                    } else {
+                        drawSquare(g, j * squareWidth(), boardTop + i * squareHeight(), shape);
+                    }
+                }
             }
         }
 
-        if (curPiece.getShape() != Tetrominoes.NoShape) {
+        // Малюємо поточну падаючу фігуру, якщо не в режимі анімації
+        if (curPiece.getShape() != Tetrominoes.NoShape && !isAnimating) {
             int dropY = calculateDropPosition();
 
             // Малюємо проекцію фігури
@@ -123,7 +150,7 @@ public class Board extends JPanel implements ActionListener {
                         curPiece.getShape());
             }
 
-            // Малюємо поточну падаючу фігуру
+            // Малюємо поточну фігуру
             for (int i = 0; i < 4; ++i) {
                 int x = curX + curPiece.x(i);
                 int y = curY - curPiece.y(i);
@@ -134,8 +161,40 @@ public class Board extends JPanel implements ActionListener {
         }
     }
 
-    private void drawGhostSquare(Graphics g, int x, int y, Tetrominoes shape) {
+    private Color flashColor = Color.WHITE;
+
+    private void drawAnimatedSquare(Graphics g, int x, int y, Tetrominoes shape) {
         Color colors[] = {
+                new Color(0, 0, 0),
+                new Color(255, 69, 0),
+                new Color(50, 205, 50),
+                new Color(30, 144, 255),
+                new Color(138, 43, 226),
+                new Color(255, 215, 0),
+                new Color(0, 191, 255),
+                new Color(255, 105, 180)
+        };
+
+        boolean isVisible = (animationStep % 2) == 0;
+        if (isVisible) {
+            drawSquare(g, x, y, shape);
+        }else {
+            Color color = colors[shape.ordinal()];
+
+            Graphics2D g2d = (Graphics2D) g;
+            float alpha = (float) Math.abs(Math.sin(Math.PI * animationStep / 6)); // Генеруємо значення прозорості
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+
+            g.setColor(color);
+            g.fillRect(x + 1, y + 1, squareWidth() - 2, squareHeight() - 2);
+
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+        }
+    }
+
+
+    private void drawGhostSquare(Graphics g, int x, int y, Tetrominoes shape) {
+        Color[] colors = {
                 new Color(0, 0, 0, 50),
                 new Color(204, 102, 102, 50),
                 new Color(102, 204, 102, 50),
@@ -233,9 +292,13 @@ public class Board extends JPanel implements ActionListener {
         return true;
     }
 
-    private void removeFullLines() {
-        int numFullLines = 0;
+    private Timer animationTimer;
+    private boolean isAnimating = false;
+    private int animationStep = 0;
+    private java.util.List<Integer> fullLines = new ArrayList<>();
 
+    private void removeFullLines() {
+        fullLines.clear();
         for (int i = BoardHeight - 1; i >= 0; --i) {
             boolean lineIsFull = true;
 
@@ -247,25 +310,36 @@ public class Board extends JPanel implements ActionListener {
             }
 
             if (lineIsFull) {
-                ++numFullLines;
-                for (int k = i; k < BoardHeight - 1; ++k) {
-                    for (int j = 0; j < BoardWidth; ++j)
-                        board[(k * BoardWidth) + j] = shapeAt(j, k + 1);
-                }
+                fullLines.add(i);
             }
         }
 
-        if (numFullLines > 0) {
-            numLinesRemoved += numFullLines;
-            statusbar.setText(String.valueOf(numLinesRemoved));
-            isFallingFinished = true;
-            curPiece.setShape(Tetrominoes.NoShape);
-            repaint();
+        if (!fullLines.isEmpty()) {
+            isAnimating = true;
+            animationStep = 0;
+            timer.stop();
+            animationTimer.start();
         }
     }
 
+    private void deleteFullLines() {
+        for (int index : fullLines) {
+            for (int k = index; k < BoardHeight - 1; ++k) {
+                for (int j = 0; j < BoardWidth; ++j)
+                    board[(k * BoardWidth) + j] = shapeAt(j, k + 1);
+            }
+            for (int j = 0; j < BoardWidth; ++j)
+                board[((BoardHeight - 1) * BoardWidth) + j] = Tetrominoes.NoShape;
+        }
+
+        numLinesRemoved += fullLines.size();
+        statusbar.setText(String.valueOf(numLinesRemoved));
+        fullLines.clear();
+        repaint();
+    }
+
     private void drawSquare(Graphics g, int x, int y, Tetrominoes shape) {
-        Color colors[] = {
+        Color[] colors = {
                 new Color(0, 0, 0),
                 new Color(204, 102, 102),
                 new Color(102, 204, 102),
@@ -298,7 +372,7 @@ public class Board extends JPanel implements ActionListener {
     class TAdapter extends KeyAdapter {
         public void keyPressed(KeyEvent e) {
 
-            if (!isStarted || curPiece.getShape() == Tetrominoes.NoShape) {
+            if (!isStarted || curPiece.getShape() == Tetrominoes.NoShape || isAnimating) {
                 return;
             }
 
