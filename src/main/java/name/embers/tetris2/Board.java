@@ -1,8 +1,6 @@
 package name.embers.tetris2;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
+import java.awt.*;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 import java.awt.event.*;
@@ -34,6 +32,9 @@ public class Board extends JPanel implements ActionListener {
         board = new Tetrominoes[BoardWidth * BoardHeight];
         clearBoard();
         addKeyListener(new TAdapter());
+
+        // Встановлюємо темний фон
+        setBackground(new Color(30, 30, 30));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -85,6 +86,16 @@ public class Board extends JPanel implements ActionListener {
         repaint();
     }
 
+    private int calculateDropPosition() {
+        int dropY = curY;
+        while (dropY > 0) {
+            if (!canMove(curPiece, curX, dropY - 1))
+                break;
+            --dropY;
+        }
+        return dropY;
+    }
+
     public void paint(Graphics g) {
         super.paint(g);
 
@@ -100,15 +111,53 @@ public class Board extends JPanel implements ActionListener {
             }
         }
 
-        // Малюємо поточну падаючу фігуру
         if (curPiece.getShape() != Tetrominoes.NoShape) {
+            int dropY = calculateDropPosition();
+
+            // Малюємо проекцію фігури
+            for (int i = 0; i < 4; ++i) {
+                int x = curX + curPiece.x(i);
+                int y = dropY - curPiece.y(i);
+                drawGhostSquare(g, x * squareWidth(),
+                        boardTop + (BoardHeight - y - 1) * squareHeight(),
+                        curPiece.getShape());
+            }
+
+            // Малюємо поточну падаючу фігуру
             for (int i = 0; i < 4; ++i) {
                 int x = curX + curPiece.x(i);
                 int y = curY - curPiece.y(i);
-                drawSquare(g, x * squareWidth(), boardTop + (BoardHeight - y - 1) * squareHeight(), curPiece.getShape());
+                drawSquare(g, x * squareWidth(),
+                        boardTop + (BoardHeight - y - 1) * squareHeight(),
+                        curPiece.getShape());
             }
         }
     }
+
+    private void drawGhostSquare(Graphics g, int x, int y, Tetrominoes shape) {
+        Color colors[] = {
+                new Color(0, 0, 0, 50),
+                new Color(204, 102, 102, 50),
+                new Color(102, 204, 102, 50),
+                new Color(102, 102, 204, 50),
+                new Color(204, 204, 102, 50),
+                new Color(204, 102, 204, 50),
+                new Color(102, 204, 204, 50),
+                new Color(218, 170, 0, 50)
+        };
+
+        Color color = colors[shape.ordinal()];
+
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+
+        g.setColor(color);
+        g.fillRect(x + 1, y + 1, squareWidth() - 2, squareHeight() - 2);
+
+        // Відновлюємо прозорість
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+    }
+
 
     private void dropDown() {
         int newY = curY;
@@ -154,6 +203,17 @@ public class Board extends JPanel implements ActionListener {
             isStarted = false;
             statusbar.setText("Кінець гри");
         }
+    }
+    private boolean canMove(Shape piece, int newX, int newY) {
+        for (int i = 0; i < 4; ++i) {
+            int x = newX + piece.x(i);
+            int y = newY - piece.y(i);
+            if (x < 0 || x >= BoardWidth || y < 0 || y >= BoardHeight)
+                return false;
+            if (shapeAt(x, y) != Tetrominoes.NoShape)
+                return false;
+        }
+        return true;
     }
 
     private boolean tryMove(Shape newPiece, int newX, int newY) {
@@ -206,10 +266,14 @@ public class Board extends JPanel implements ActionListener {
 
     private void drawSquare(Graphics g, int x, int y, Tetrominoes shape) {
         Color colors[] = {
-                new Color(0, 0, 0), new Color(204, 102, 102),
-                new Color(102, 204, 102), new Color(102, 102, 204),
-                new Color(204, 204, 102), new Color(204, 102, 204),
-                new Color(102, 204, 204), new Color(218, 170, 0)
+                new Color(0, 0, 0),
+                new Color(204, 102, 102),
+                new Color(102, 204, 102),
+                new Color(102, 102, 204),
+                new Color(204, 204, 102),
+                new Color(204, 102, 204),
+                new Color(102, 204, 204),
+                new Color(218, 170, 0)
         };
 
         Color color = colors[shape.ordinal()];
@@ -227,6 +291,7 @@ public class Board extends JPanel implements ActionListener {
         g.drawLine(x + squareWidth() - 1, y + squareHeight() - 1,
                 x + squareWidth() - 1, y + 1);
     }
+
 
     // **Додаємо внутрішній клас TAdapter для обробки вводу**
 

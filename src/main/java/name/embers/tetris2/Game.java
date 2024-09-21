@@ -13,13 +13,14 @@ public class Game extends JFrame {
 
     private void initUI() {
         statusbar = new JLabel(" 0");
+        //statusbar.setForeground(Color.WHITE); // Встановлюємо білий колір тексту статусбару
         add(statusbar, BorderLayout.SOUTH);
         Board board = new Board(this);
         add(board);
         board.start();
 
         setTitle("Тетріс");
-        setSize(200, 400);
+        setSize(400, 800);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
     }
