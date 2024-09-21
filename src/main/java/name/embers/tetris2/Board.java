@@ -20,10 +20,10 @@ public class Board extends JPanel implements ActionListener {
     int curX = 0;
     int curY = 0;
     JLabel statusbar;
-    Shape curPiece;
     Tetrominoes[] board;
 
-    private Shape nextPiece; // Додаємо це поле
+    private Shape curPiece;
+    private Shape nextPiece;
 
     private NextPiecePanel nextPiecePanel;
 
@@ -33,6 +33,8 @@ public class Board extends JPanel implements ActionListener {
     public Board(Game parent) {
         setFocusable(true);
         curPiece = new Shape();
+        nextPiece = new Shape();          // Ініціалізація nextPiece
+        nextPiece.setRandomShape();       // Встановлення випадкової фігури
         timer = new Timer(500, this);
         timer.start();
 
@@ -45,6 +47,8 @@ public class Board extends JPanel implements ActionListener {
         setBackground(new Color(30, 30, 30));
 
         animationTimer = new Timer(100, new AnimationListener());
+
+        startNewGame();
     }
 
     class AnimationListener implements ActionListener {
@@ -268,6 +272,11 @@ public class Board extends JPanel implements ActionListener {
     }
 
     private void newPiece() {
+        if (nextPiece == null) {
+            System.err.println("nextPiece is null! Initializing a new Shape.");
+            nextPiece = new Shape();
+            nextPiece.setRandomShape();
+        }
         curPiece = nextPiece;         // Поточна фігура стає наступною
         nextPiece = new Shape();      // Генеруємо нову наступну фігуру
         nextPiece.setRandomShape();
