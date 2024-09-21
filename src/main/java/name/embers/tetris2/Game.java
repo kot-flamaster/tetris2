@@ -1,8 +1,7 @@
 package name.embers.tetris2;
 
 import javax.swing.*;
-import java.awt.BorderLayout;
-import java.awt.Color;
+import java.awt.*;
 
 public class Game extends JFrame {
 
@@ -15,8 +14,13 @@ public class Game extends JFrame {
 
     private void initUI() {
         // Ініціалізація статусбару
-        statusbar = new JLabel(" 0");
+        statusbar = new JLabel("0");
         statusbar.setForeground(Color.WHITE);
+        statusbar.setBackground(new Color(30, 30, 30));
+        statusbar.setOpaque(true);
+        statusbar.setFont(new Font("Arial", Font.BOLD, 18)); // Встановлення читабельного шрифту
+        statusbar.setHorizontalAlignment(SwingConstants.CENTER); // Вирівнювання тексту по центру
+
 
         // Створюємо панель для ігрового поля та наступної фігури
         JPanel panel = new JPanel(new BorderLayout());
