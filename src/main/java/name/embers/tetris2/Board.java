@@ -49,17 +49,25 @@ public class Board extends JPanel implements ActionListener {
     int squareHeight() { return (int) getSize().getHeight() / BoardHeight; }
     Tetrominoes shapeAt(int x, int y) { return board[(y * BoardWidth) + x]; }
 
-    public void start() {
-        if (isPaused)
-            return;
 
-        isStarted = true;
+    public void startNewGame() {
+        timer.stop();
+        isStarted = false;
         isFallingFinished = false;
         numLinesRemoved = 0;
         clearBoard();
-
+        statusbar.setText(String.valueOf(numLinesRemoved));
+        start();
+    }
+    public void start() {
+        isStarted = true;
+        isPaused = false;
+        isFallingFinished = false;
+        numLinesRemoved = 0;
+        clearBoard();
         newPiece();
         timer.start();
+        statusbar.setText(String.valueOf(numLinesRemoved));
     }
 
     private void pause() {
@@ -233,6 +241,11 @@ public class Board extends JPanel implements ActionListener {
 
             if (keycode == 'p' || keycode == 'P') {
                 pause();
+                return;
+            }
+
+            if (keycode == 'n' || keycode == 'N') {
+                startNewGame();
                 return;
             }
 
