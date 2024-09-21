@@ -1,10 +1,11 @@
 package name.embers.tetris2;
 
-import java.awt.*;
-import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import javax.swing.JPanel;
 
 public class NextPiecePanel extends JPanel {
 
@@ -40,16 +41,35 @@ public class NextPiecePanel extends JPanel {
 
         // Включаємо антиаліасинг для плавних країв
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
         // Розраховуємо розмір кожного квадрата
         int squareSize = Math.min(getWidth(), getHeight()) / 4; // Використовуємо 4 квадрати для фігури
-        int offsetX = (getWidth() - (squareSize * 4)) / 2;
-        int offsetY = (getHeight() - (squareSize * 4)) / 2;
+
+        // Обчислюємо розміри фігури (bounding box)
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
+
+        for (int i = 0; i < 4; i++) {
+            minX = Math.min(minX, nextPiece.x(i));
+            maxX = Math.max(maxX, nextPiece.x(i));
+            minY = Math.min(minY, nextPiece.y(i));
+            maxY = Math.max(maxY, nextPiece.y(i));
+        }
+
+        int shapeWidth = maxX - minX + 1;
+        int shapeHeight = maxY - minY + 1;
+
+        // Розраховуємо початкову позицію для малювання фігури
+        int startX = (getWidth() - (shapeWidth * squareSize)) / 2 - (minX * squareSize);
+        int startY = (getHeight() - (shapeHeight * squareSize)) / 2 - (minY * squareSize);
 
         // Визначаємо координати для фігури
         for (int i = 0; i < 4; i++) {
-            int x = nextPiece.x(i) * squareSize + offsetX + squareSize;
-            int y = nextPiece.y(i) * squareSize + offsetY + squareSize;
+            int x = nextPiece.x(i) * squareSize + startX;
+            int y = nextPiece.y(i) * squareSize + startY;
 
             drawSquare(g2d, x, y, nextPiece.getShape(), squareSize);
         }
@@ -58,16 +78,10 @@ public class NextPiecePanel extends JPanel {
     private void drawSquare(Graphics g, int x, int y, Tetrominoes shape, int size) {
         Color color = colors[shape.ordinal()];
         g.setColor(color);
-        g.fillRect(x, y, size, size);
+        g.fillRoundRect(x, y, size, size, 10, 10);
 
-        // Додаємо світіння
+        // Додаємо контур
         g.setColor(color.brighter());
-        g.drawLine(x, y + size - 1, x, y);
-        g.drawLine(x, y, x + size - 1, y);
-
-        // Додаємо тіні
-        g.setColor(color.darker());
-        g.drawLine(x + 1, y + size - 1, x + size - 1, y + size - 1);
-        g.drawLine(x + size - 1, y + size - 1, x + size - 1, y + 1);
+        g.drawRoundRect(x, y, size, size, 10, 10);
     }
 }
