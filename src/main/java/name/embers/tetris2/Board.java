@@ -23,12 +23,17 @@ public class Board extends JPanel implements ActionListener {
     Shape curPiece;
     Tetrominoes[] board;
 
+    private Shape nextPiece; // Додаємо це поле
+
+    private NextPiecePanel nextPiecePanel;
+
+
     public final int totalAnimationSteps = 6; // 3 миготіння * 2 стани (видимий/невидимий)
 
     public Board(Game parent) {
         setFocusable(true);
         curPiece = new Shape();
-        timer = new Timer(400, this);
+        timer = new Timer(500, this);
         timer.start();
 
         statusbar = parent.getStatusBar();
@@ -87,7 +92,11 @@ public class Board extends JPanel implements ActionListener {
         isFallingFinished = false;
         numLinesRemoved = 0;
         clearBoard();
-        newPiece();
+
+        nextPiece = new Shape();      // Ініціалізуємо наступну фігуру
+        nextPiece.setRandomShape();
+
+        newPiece();                   // Створюємо першу фігуру
         timer.start();
         statusbar.setText(String.valueOf(numLinesRemoved));
     }
@@ -259,7 +268,14 @@ public class Board extends JPanel implements ActionListener {
     }
 
     private void newPiece() {
-        curPiece.setRandomShape();
+        curPiece = nextPiece;         // Поточна фігура стає наступною
+        nextPiece = new Shape();      // Генеруємо нову наступну фігуру
+        nextPiece.setRandomShape();
+
+        if (nextPiecePanel != null) {
+            nextPiecePanel.setNextPiece(nextPiece);
+        }
+
         curX = BoardWidth / 2 + 1;
         curY = BoardHeight - 1 + curPiece.minY();
 
@@ -423,5 +439,16 @@ public class Board extends JPanel implements ActionListener {
                     break;
             }
         }
+    }
+    public void setNextPiecePanel(NextPiecePanel panel) {
+        this.nextPiecePanel = panel;
+    }
+
+    public Shape getNextPiece() {
+        return nextPiece;
+    }
+
+    public Color[] getColors() {
+        return colors;
     }
 }
