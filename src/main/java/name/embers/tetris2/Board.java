@@ -23,7 +23,7 @@ public class Board extends JPanel implements ActionListener {
     Shape curPiece;
     Tetrominoes[] board;
 
-    private int totalAnimationSteps = 6; // 3 миготіння * 2 стани (видимий/невидимий)
+    public final int totalAnimationSteps = 6; // 3 миготіння * 2 стани (видимий/невидимий)
 
     public Board(Game parent) {
         setFocusable(true);
@@ -120,6 +120,10 @@ public class Board extends JPanel implements ActionListener {
     public void paint(Graphics g) {
         super.paint(g);
 
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
         Dimension size = getSize();
         int boardTop = (int) size.getHeight() - BoardHeight * squareHeight();
 
@@ -128,10 +132,13 @@ public class Board extends JPanel implements ActionListener {
             for (int j = 0; j < BoardWidth; ++j) {
                 Tetrominoes shape = shapeAt(j, BoardHeight - i - 1);
                 if (shape != Tetrominoes.NoShape) {
+                    int x = j * squareWidth();
+                    int y = boardTop + i * squareHeight();
+
                     if (isAnimating && fullLines.contains(BoardHeight - i - 1)) {
-                        drawAnimatedSquare(g, j * squareWidth(), boardTop + i * squareHeight(), shape);
+                        drawAnimatedSquare(g2d, x, y, shape);
                     } else {
-                        drawSquare(g, j * squareWidth(), boardTop + i * squareHeight(), shape);
+                        drawSquare(g2d, x, y, shape);
                     }
                 }
             }
@@ -145,7 +152,7 @@ public class Board extends JPanel implements ActionListener {
             for (int i = 0; i < 4; ++i) {
                 int x = curX + curPiece.x(i);
                 int y = dropY - curPiece.y(i);
-                drawGhostSquare(g, x * squareWidth(),
+                drawGhostSquare(g2d, x * squareWidth(),
                         boardTop + (BoardHeight - y - 1) * squareHeight(),
                         curPiece.getShape());
             }
@@ -154,68 +161,68 @@ public class Board extends JPanel implements ActionListener {
             for (int i = 0; i < 4; ++i) {
                 int x = curX + curPiece.x(i);
                 int y = curY - curPiece.y(i);
-                drawSquare(g, x * squareWidth(),
+                drawSquare(g2d, x * squareWidth(),
                         boardTop + (BoardHeight - y - 1) * squareHeight(),
                         curPiece.getShape());
             }
         }
     }
 
-    private Color flashColor = Color.WHITE;
+    private final Color[] colors = {
+            new Color(30, 30, 30),        // Фон (темно-сірий)
+            new Color(233, 84, 84),       // Червоний (Z-образна фігура)
+            new Color(115, 194, 118),     // Зелений (S-образна фігура)
+            new Color(102, 153, 204),     // Синій (Лінійна фігура)
+            new Color(178, 102, 255),     // Фіолетовий (T-образна фігура)
+            new Color(255, 230, 102),     // Жовтий (Квадратна фігура)
+            new Color(255, 167, 92),      // Оранжевий (L-образна фігура)
+            new Color(102, 217, 255)      // Блакитний (Перевернута L-образна фігура)
+    };
 
     private void drawAnimatedSquare(Graphics g, int x, int y, Tetrominoes shape) {
-        Color colors[] = {
-                new Color(0, 0, 0),
-                new Color(255, 69, 0),
-                new Color(50, 205, 50),
-                new Color(30, 144, 255),
-                new Color(138, 43, 226),
-                new Color(255, 215, 0),
-                new Color(0, 191, 255),
-                new Color(255, 105, 180)
-        };
-
         boolean isVisible = (animationStep % 2) == 0;
-        if (isVisible) {
-            drawSquare(g, x, y, shape);
-        }else {
-            Color color = colors[shape.ordinal()];
-
-            Graphics2D g2d = (Graphics2D) g;
-            float alpha = (float) Math.abs(Math.sin(Math.PI * animationStep / 6)); // Генеруємо значення прозорості
-            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
-
-            g.setColor(color);
-            g.fillRect(x + 1, y + 1, squareWidth() - 2, squareHeight() - 2);
-
-            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-        }
-    }
-
-
-    private void drawGhostSquare(Graphics g, int x, int y, Tetrominoes shape) {
-        Color[] colors = {
-                new Color(0, 0, 0, 50),
-                new Color(204, 102, 102, 50),
-                new Color(102, 204, 102, 50),
-                new Color(102, 102, 204, 50),
-                new Color(204, 204, 102, 50),
-                new Color(204, 102, 204, 50),
-                new Color(102, 204, 204, 50),
-                new Color(218, 170, 0, 50)
-        };
 
         Color color = colors[shape.ordinal()];
 
         Graphics2D g2d = (Graphics2D) g;
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+        Composite originalComposite = g2d.getComposite();
 
-        g.setColor(color);
-        g.fillRect(x + 1, y + 1, squareWidth() - 2, squareHeight() - 2);
+        if (isVisible) {
+            // Використовуємо початковий колір з прозорістю
+            float alpha = 0.6f; // Значення від 0.0f до 1.0f
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+            drawSquare(g2d, x, y, color);
+        } else {
+            // Малюємо квадрат кольором фону
+            g.setColor(getBackground());
+            g.fillRect(x, y, squareWidth(), squareHeight());
+        }
 
-        // Відновлюємо прозорість
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+        // Відновлюємо оригінальний Composite
+        g2d.setComposite(originalComposite);
     }
+
+
+    private void drawGhostSquare(Graphics g, int x, int y, Tetrominoes shape) {
+        Color color = colors[shape.ordinal()];
+
+        // Створюємо прозорий варіант кольору
+        int alpha = 100; // Значення альфа-каналу (0-255)
+        Color ghostColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha);
+
+        Graphics2D g2d = (Graphics2D) g;
+        Composite originalComposite = g2d.getComposite();
+
+        // Встановлюємо прозорість для проекції
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, ghostColor.getAlpha() / 255f));
+
+        // Малюємо проекцію фігури
+        drawSquare(g2d, x, y, ghostColor);
+
+        // Відновлюємо оригінальний Composite
+        g2d.setComposite(originalComposite);
+    }
+
 
 
     private void dropDown() {
@@ -292,10 +299,10 @@ public class Board extends JPanel implements ActionListener {
         return true;
     }
 
-    private Timer animationTimer;
+    private final Timer animationTimer;
     private boolean isAnimating = false;
     private int animationStep = 0;
-    private java.util.List<Integer> fullLines = new ArrayList<>();
+    private final java.util.List<Integer> fullLines = new ArrayList<>();
 
     private void removeFullLines() {
         fullLines.clear();
@@ -338,23 +345,23 @@ public class Board extends JPanel implements ActionListener {
         repaint();
     }
 
+
     private void drawSquare(Graphics g, int x, int y, Tetrominoes shape) {
-        Color[] colors = {
-                new Color(0, 0, 0),
-                new Color(204, 102, 102),
-                new Color(102, 204, 102),
-                new Color(102, 102, 204),
-                new Color(204, 204, 102),
-                new Color(204, 102, 204),
-                new Color(102, 204, 204),
-                new Color(218, 170, 0)
-        };
-
         Color color = colors[shape.ordinal()];
+        drawSquare(g, x, y, color);
+    }
 
+    private void drawSquare(Graphics g, int x, int y, Color color) {
+
+        // Додаємо тінь
+        g.setColor(color.darker().darker());
+        g.fillRect(x + 3, y + 3, squareWidth() - 2, squareHeight() - 2);
+
+        // Малюємо саму фігуру
         g.setColor(color);
         g.fillRect(x + 1, y + 1, squareWidth() - 2, squareHeight() - 2);
 
+        // Додаємо світіння
         g.setColor(color.brighter());
         g.drawLine(x, y + squareHeight() - 1, x, y);
         g.drawLine(x, y, x + squareWidth() - 1, y);
@@ -371,22 +378,25 @@ public class Board extends JPanel implements ActionListener {
 
     class TAdapter extends KeyAdapter {
         public void keyPressed(KeyEvent e) {
+            int keycode = e.getKeyCode();
+
+            if (keycode == KeyEvent.VK_N) {
+                startNewGame();
+                return;
+            }
 
             if (!isStarted || curPiece.getShape() == Tetrominoes.NoShape || isAnimating) {
                 return;
             }
 
-            int keycode = e.getKeyCode();
+
 
             if (keycode == 'p' || keycode == 'P') {
                 pause();
                 return;
             }
 
-            if (keycode == 'n' || keycode == 'N') {
-                startNewGame();
-                return;
-            }
+
 
             if (isPaused)
                 return;
