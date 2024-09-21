@@ -1,5 +1,7 @@
 package name.embers.tetris2;
 
+import java.util.Random;
+
 public class Shape {
     private Tetrominoes pieceShape;
     private int coords[][];
@@ -31,12 +33,25 @@ public class Shape {
         pieceShape = shape;
     }
 
-    // Методи для отримання координат
+    public void setRandomShape() {
+        Random r = new Random();
+        int x = Math.abs(r.nextInt()) % 7 + 1; // Генеруємо число від 1 до 7
+        Tetrominoes[] values = Tetrominoes.values();
+        setShape(values[x]);
+    }
+
     public int x(int index) { return coords[index][0]; }
     public int y(int index) { return coords[index][1]; }
     public Tetrominoes getShape() { return pieceShape; }
 
-    // Поворот фігури
+    public int minY() {
+        int m = coords[0][1];
+        for (int i = 0; i < 4; i++) {
+            m = Math.min(m, coords[i][1]);
+        }
+        return m;
+    }
+
     public Shape rotateLeft() {
         if (pieceShape == Tetrominoes.SquareShape)
             return this;
