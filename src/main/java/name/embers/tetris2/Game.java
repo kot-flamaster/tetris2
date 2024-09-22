@@ -44,7 +44,7 @@ public class Game extends JFrame {
 
         // Налаштування вікна
         setTitle("Тетріс");
-        setSize(400, 500); // Збільшуємо розмір вікна для нових компонентів
+        setSize(500, 600); // Збільшуємо розмір вікна для нових компонентів
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 

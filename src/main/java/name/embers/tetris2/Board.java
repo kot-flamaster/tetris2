@@ -48,6 +48,10 @@ public class Board extends JPanel implements ActionListener {
 
         animationTimer = new Timer(100, new AnimationListener());
 
+        // Ініціалізуємо dropTimer з затримкою 50 мс
+        dropTimer = new Timer(20, new DropAnimationListener());
+
+
         startNewGame();
     }
 
@@ -65,7 +69,7 @@ public class Board extends JPanel implements ActionListener {
     }
 
     public void actionPerformed(ActionEvent e) {
-        if (isAnimating) {
+        if (isAnimating || isDropping) {
             return;
         }
         if (isFallingFinished) {
@@ -236,17 +240,38 @@ public class Board extends JPanel implements ActionListener {
         g2d.setComposite(originalComposite);
     }
 
+    private Timer dropTimer;       // Таймер для анімації падіння
+    private boolean isDropping = false; // Прапорець, що відстежує, чи триває анімація падіння
+
+    class DropAnimationListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+
+            // Спробуємо перемістити фігуру вниз на одну позицію
+            int newY = curY;
+            if (tryMove(curPiece, curX, newY - 1)) {
+                --newY;
+//                curY -= 1;
+                repaint();
+            } else {
+                // Якщо не вдалося перемістити, зупиняємо анімацію та приземляємо фігуру
+                dropTimer.stop();
+                isDropping = false;
+                pieceDropped();
+            }
+        }
+    }
 
 
     private void dropDown() {
-        int newY = curY;
-        while (newY > 0) {
-            if (!tryMove(curPiece, curX, newY - 1))
-                break;
-            --newY;
+        // Якщо вже триває анімація або анімація видалення рядків, не робимо нічого
+        if (isAnimating || isDropping) {
+            return;
         }
-        pieceDropped();
+
+        isDropping = true;
+        dropTimer.start(); // Запускаємо таймер анімації падіння
     }
+
 
     private void oneLineDown() {
         if (!tryMove(curPiece, curX, curY - 1))
@@ -288,13 +313,47 @@ public class Board extends JPanel implements ActionListener {
         curX = BoardWidth / 2 + 1;
         curY = BoardHeight - 1 + curPiece.minY();
 
+
+        final int pointToRemove = 10;
+        final int rowsToRemove = 5;
+
+
         if (!tryMove(curPiece, curX, curY)) {
-            curPiece.setShape(Tetrominoes.NoShape);
-            timer.stop();
-            isStarted = false;
-            statusbar.setText("Кінець гри");
+            if (numLinesRemoved >= pointToRemove) {
+                // Якщо у гравця більше ніж 10 очок
+                numLinesRemoved -= pointToRemove; // Втрачає 10 очок
+                removeBottomRows(rowsToRemove);   // Видаляємо 5 нижніх рядків
+                statusbar.setText(String.valueOf(numLinesRemoved)); // Оновлюємо статус бар
+            } else {
+                // Якщо кількість очок менше 10 — кінець гри
+                curPiece.setShape(Tetrominoes.NoShape);
+                timer.stop();
+                isStarted = false;
+                statusbar.setText("Кінець гри");
+            }
         }
     }
+
+    private void removeBottomRows(int numberOfRows) {
+        for (int row = 0; row < numberOfRows; row++) {
+            // Видаляємо нижні рядки та зміщуємо всі інші догори
+            for (int i = 0; i < BoardHeight - 1; i++) {
+                for (int j = 0; j < BoardWidth; j++) {
+                    board[i * BoardWidth + j] = board[(i + 1) * BoardWidth + j];  // Зміщуємо рядки догори
+                }
+            }
+
+            // Очищаємо верхній рядок після зсуву
+            for (int j = 0; j < BoardWidth; j++) {
+                board[((BoardHeight - 1) * BoardWidth) + j] = Tetrominoes.NoShape;
+            }
+        }
+        repaint(); // Оновлюємо відображення після зсуву
+    }
+
+
+
+
     private boolean canMove(Shape piece, int newX, int newY) {
         for (int i = 0; i < 4; ++i) {
             int x = newX + piece.x(i);
@@ -410,11 +469,9 @@ public class Board extends JPanel implements ActionListener {
                 return;
             }
 
-            if (!isStarted || curPiece.getShape() == Tetrominoes.NoShape || isAnimating) {
+            if (!isStarted || curPiece.getShape() == Tetrominoes.NoShape || isAnimating || isDropping) {
                 return;
             }
-
-
 
             if (keycode == 'p' || keycode == 'P') {
                 pause();
